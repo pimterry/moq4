@@ -53,6 +53,13 @@ namespace Moq
 		/// Reference the Mock that contains this as the <c>mock.Object</c> value.
 		/// </summary>
 		new Mock<T> Mock { get; }
+
+        /// <summary>
+        /// Returns the name of the mock. Explicitly included in this interface to allow
+        /// Moq to set a useful value even if the mocked type does not override the
+        /// default object implementation.
+        /// </summary>
+        string ToString();
 	}
 
 	/// <summary>

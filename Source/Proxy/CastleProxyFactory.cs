@@ -51,17 +51,19 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Moq.Proxy
 {
-	/// <summary>
-	/// The base for all our proxies overrides the default object ToString behavior, to route it via the
-	/// mock (unless overriden by a real implementation). 
-	/// </summary>
-	abstract class ProxyBase
-	{
-		public override string ToString()
-		{
-			return Mock.Get((IMocked) this).Object.Mock.ToString() + ".Object";
-		}
-	}
+    /// <summary>
+    /// 
+    /// </summary>
+    public class ProxyHook : AllMethodsHook
+    {
+        /// <summary>
+        /// Extends AllMethodsHook to follow the default 
+        /// </summary>
+        public override bool ShouldInterceptMethod(Type type, MethodInfo methodInfo)
+        {
+            return base.ShouldInterceptMethod(type, methodInfo) || methodInfo.DeclaringType == typeof(IMocked);
+        }
+    }
 
 	internal class CastleProxyFactory : IProxyFactory
 	{
@@ -83,20 +85,20 @@ namespace Moq.Proxy
 			AttributesToAvoidReplicating.Add<System.Runtime.InteropServices.TypeIdentifierAttribute>();
 #endif
 #endif
+            proxyOptions = new ProxyGenerationOptions { Hook = new ProxyHook() };
 		}
 
 		/// <inheritdoc />
 		public object CreateProxy(Type mockType, ICallInterceptor interceptor, Type[] interfaces, object[] arguments)
 		{
-			if (mockType.IsInterface) {
-				var options = new ProxyGenerationOptions {BaseTypeForInterfaceProxy = typeof(ProxyBase)};
-
-				return generator.CreateInterfaceProxyWithoutTarget(mockType, interfaces, options, new Interceptor(interceptor));
+			if (mockType.IsInterface)
+            {
+				return generator.CreateInterfaceProxyWithoutTarget(mockType, interfaces, proxyOptions, new Interceptor(interceptor));
 			}
 
 			try
 			{
-				return generator.CreateClassProxy(mockType, interfaces, ProxyGenerationOptions.Default, arguments, new Interceptor(interceptor));
+                return generator.CreateClassProxy(mockType, interfaces, proxyOptions, arguments, new Interceptor(interceptor));
 			}
 			catch (TypeLoadException e)
 			{
@@ -108,16 +110,18 @@ namespace Moq.Proxy
 			}
 		}
 
-		private static readonly Dictionary<Type, Type> delegateInterfaceCache = new Dictionary<Type, Type>();
+        private static readonly Dictionary<Type, Type> delegateInterfaceCache = new Dictionary<Type, Type>();
+        private static readonly ProxyGenerationOptions proxyOptions;
 		private static int delegateInterfaceSuffix;
 
-		/// <inheritdoc />
+	    /// <inheritdoc />
 		public Type GetDelegateProxyInterface(Type delegateType, out MethodInfo delegateInterfaceMethod)
 		{
 			Type delegateInterfaceType;
 
 			lock (this)
 			{
+                // TODO: Mock delegate names too
 				if (!delegateInterfaceCache.TryGetValue(delegateType, out delegateInterfaceType))
  				{
 					var interfaceName = String.Format(CultureInfo.InvariantCulture, "DelegateInterface_{0}_{1}",
@@ -163,6 +167,7 @@ namespace Moq.Proxy
 			public void Intercept(IInvocation invocation)
 			{
 				this.interceptor.Intercept(new CallContext(invocation));
+			    invocation.ReturnValue = "hi";
 			}
 		}
 

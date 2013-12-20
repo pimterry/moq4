@@ -41,6 +41,8 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
+using System.Security.Cryptography.X509Certificates;
+using Castle.DynamicProxy.Contributors;
 using Moq.Language.Flow;
 using Moq.Proxy;
 using Moq.Language;
@@ -108,7 +110,6 @@ namespace Moq
 			this.Interceptor = new Interceptor(behavior, typeof(T), this);
 			this.constructorArguments = args;
 			this.ImplementedInterfaces.Add(typeof(IMocked<T>));
-			this.ImplementedInterfaces.Add(typeof(IMocked));
 
 			this.CheckParameters();
 		}
